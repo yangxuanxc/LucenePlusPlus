@@ -1,218 +1,1477 @@
-project(lucene++)
+cmake_minimum_required(VERSION 3.13)
+project(LucenePlusPlus)
 
-cmake_minimum_required(VERSION 2.8.6)
+set(CMAKE_CXX_STANDARD 14)
 
-set(lucene++_VERSION_MAJOR 3)
-set(lucene++_VERSION_MINOR 0)
-set(lucene++_VERSION_PATCH 7)
+include_directories(.)
+include_directories(cmake)
+include_directories(cmake-build-debug)
+include_directories(cmake-build-debug/include)
+include_directories(doc)
+include_directories(doxygen)
+include_directories(include)
+include_directories(src)
+include_directories(src/contrib)
+include_directories(src/contrib/analyzers)
+include_directories(src/contrib/highlighter)
+include_directories(src/contrib/include)
+include_directories(src/contrib/memory)
+include_directories(src/contrib/msvc)
+include_directories(src/contrib/snowball)
+include_directories(src/contrib/snowball/libstemmer_c)
+include_directories(src/contrib/snowball/libstemmer_c/examples)
+include_directories(src/contrib/snowball/libstemmer_c/include)
+include_directories(src/contrib/snowball/libstemmer_c/libstemmer)
+include_directories(src/contrib/snowball/libstemmer_c/runtime)
+include_directories(src/contrib/snowball/libstemmer_c/src_c)
+include_directories(src/core)
+include_directories(src/core/analysis)
+include_directories(src/core/document)
+include_directories(src/core/include)
+include_directories(src/core/index)
+include_directories(src/core/msvc)
+include_directories(src/core/queryparser)
+include_directories(src/core/search)
+include_directories(src/core/store)
+include_directories(src/core/util)
+include_directories(src/core/util/md5)
+include_directories(src/core/util/unicode)
+include_directories(src/demo)
+include_directories(src/msvc)
+include_directories(src/test)
+include_directories(src/test/analysis)
+include_directories(src/test/contrib)
+include_directories(src/test/document)
+include_directories(src/test/gtest)
+include_directories(src/test/gtest/codegear)
+include_directories(src/test/gtest/include)
+include_directories(src/test/gtest/include/gtest)
+include_directories(src/test/gtest/include/gtest/internal)
+include_directories(src/test/gtest/samples)
+include_directories(src/test/gtest/src)
+include_directories(src/test/gtest/test)
+include_directories(src/test/gtest/xcode)
+include_directories(src/test/gtest/xcode/Samples)
+include_directories(src/test/gtest/xcode/Samples/FrameworkSample)
+include_directories(src/test/include)
+include_directories(src/test/index)
+include_directories(src/test/main)
+include_directories(src/test/msvc)
+include_directories(src/test/queryparser)
+include_directories(src/test/search)
+include_directories(src/test/store)
+include_directories(src/test/util)
 
-set(lucene++_SOVERSION "0")
-
-set(lucene++_VERSION
-  "${lucene++_VERSION_MAJOR}.${lucene++_VERSION_MINOR}.${lucene++_VERSION_PATCH}"
-)
-
-# include specific modules
-set(CMAKE_MODULE_PATH "${CMAKE_SOURCE_DIR}/cmake")
-
-####################################
-# pre-compiled headers support
-####################################
-include(cotire)
-
-# if setup using the Toolchain-llvm.cmake file, then use llvm...
-if(ENABLE_LLVM)
-  include(Toolchain-llvm)
-endif()
-
-####################################
-# user specified build options
-####################################
-if(NOT CMAKE_CONFIGURATION_TYPES AND NOT CMAKE_BUILD_TYPE)
-  set(CMAKE_BUILD_TYPE "Release")
-endif()
-
-option(ENABLE_PACKAGING
-  "Create build scripts for creating lucene++ packages"
-  OFF
-)
-option(LUCENE_USE_STATIC_BOOST_LIBS
-  "Use static boost libraries"
-  OFF
-)
-option(ENABLE_BOOST_INTEGER
-  "Enable boost integer types"
-  OFF
-)
-option(ENABLE_CYCLIC_CHECK
-  "Enable cyclic checking"
-  OFF
-)
-option(ENABLE_TEST
-  "Enable the tests"
-  ON
-)
-option(ENABLE_DEMO
-  "Enable building demo applications"
-  ON
-)
-
-####################################
-# bootstrap
-####################################
-
-find_package(Threads REQUIRED)
-find_package(Boost COMPONENTS
-  date_time
-  filesystem
-  iostreams
-  regex
-  system
-  thread
-  REQUIRED
-)
-
-set(Boost_USE_MULTITHREADED ON)
-set(Boost_USE_STATIC_LIBS ${LUCENE_USE_STATIC_BOOST_LIBS})
-
-set(lucene_boost_libs
-  ${Boost_LIBRARIES}
-  ${Boost_FILESYSTEM_LIBRARIES}
-  ${Boost_IOSTREAMS_LIBRARIES}
-  ${Boost_REGEX_LIBRARIES}
-  ${Boost_SYSTEM_LIBRARIES}
-  ${Boost_THREAD_LIBRARIES}
-)
-
-include(Lucene++Docs)
-include(TestCXXAcceptsFlag)
-include(GNUInstallDirs)
-
-set(LIB_DESTINATION
-  "${CMAKE_INSTALL_FULL_LIBDIR}" CACHE STRING "Define lib output directory name"
-)
-
-if(ENABLE_BOOST_INTEGER)
-  set(DEFINE_USE_BOOST_INTEGER "define")
-else()
-  set(DEFINE_USE_BOOST_INTEGER "undef")
-endif()
-
-if(ENABLE_CYCLIC_CHECK)
-  set(DEFINE_USE_CYCLIC_CHECK "define")
-else()
-  set(DEFINE_USE_CYCLIC_CHECK "undef")
-endif()
-
-####################################
-# platform specific options
-####################################
-if(WIN32 OR WIN64)
-  set(CMAKE_DEBUG_POSTFIX "d")
-endif()
-
-if(MSVC)
-  # Disable automatic boost linking on Windows as libraries are added to the linker explicitly
-  add_definitions(-DBOOST_ALL_NO_LIB)
-
-  # enable exceptions, see http://msdn.microsoft.com/en-us/library/1deeycx5.aspx
-  add_definitions(-EHsc)
-endif()
-
-if(NOT WIN32 AND NOT CMAKE_SYSTEM MATCHES "SunOS-5*.")
-  add_definitions(-fPIC)
-endif()
-
-if(CYGWIN)
-  add_definitions(-D__LARGE64_FILES)
-endif()
-
-if(APPLE)
-  set(CMAKE_MACOSX_RPATH ON)
-  set(CMAKE_SKIP_BUILD_RPATH FALSE)
-  set(CMAKE_BUILD_WITH_INSTALL_RPATH FALSE)
-  set(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/lib")
-  set(CMAKE_INSTALL_RPATH_USE_LINK_PATH TRUE)
-  list(FIND CMAKE_PLATFORM_IMPLICIT_LINK_DIRECTORIES "${CMAKE_INSTALL_PREFIX}/lib" isSystemDir)
-  if("${isSystemDir}" STREQUAL "-1")
-    set(CMAKE_INSTALL_RPATH "${CMAKE_INSTALL_PREFIX}/lib")
-  endif()
-endif()
-
-#################################
-# generate Config.h
-#################################
-configure_file(
-  "${CMAKE_CURRENT_SOURCE_DIR}/include/Config.h.cmake"
-  "${CMAKE_CURRENT_BINARY_DIR}/include/Config.h" @ONLY
-)
-
-include_directories(
-  "${CMAKE_CURRENT_BINARY_DIR}/include"
-)
-
-
-add_subdirectory(src/core)
-add_subdirectory(src/contrib)
-
-if(ENABLE_DEMO)
-  add_subdirectory(src/demo)
-endif()
-
-if(ENABLE_TEST)
-  enable_testing()
-  add_subdirectory(src/test)
-endif()
-
-#################################
-# install pkg-config file
-#################################
-if(NOT WIN32)
-  configure_file(
-    "${CMAKE_CURRENT_SOURCE_DIR}/liblucene++.pc.cmake"
-    "${CMAKE_CURRENT_BINARY_DIR}/liblucene++.pc" @ONLY)
-  configure_file(
-    "${CMAKE_CURRENT_SOURCE_DIR}/liblucene++-contrib.pc.cmake"
-    "${CMAKE_CURRENT_BINARY_DIR}/liblucene++-contrib.pc" @ONLY)
-  install(
-    FILES
-    "${CMAKE_CURRENT_BINARY_DIR}/liblucene++.pc"
-    "${CMAKE_CURRENT_BINARY_DIR}/liblucene++-contrib.pc"
-    DESTINATION "${LIB_DESTINATION}/pkgconfig")
-endif()
-
-#################################
-# install Config.h
-#################################
-install(
-  FILES
-  "${CMAKE_CURRENT_BINARY_DIR}/include/Config.h"
-  DESTINATION include/lucene++)
-
-####################################
-# custom targets
-####################################
-configure_file(
-  "${CMAKE_MODULE_PATH}/cmake_uninstall.cmake.in"
-  "${CMAKE_CURRENT_BINARY_DIR}/cmake_uninstall.cmake"
-  IMMEDIATE @ONLY
-)
-
-add_custom_target(
-  uninstall
-  "${CMAKE_COMMAND}" -P "${CMAKE_CURRENT_BINARY_DIR}/cmake_uninstall.cmake"
-  VERBATIM
-)
-
-if(ENABLE_PACKAGING)
-  include(CreateLucene++Packages)
-endif()
-
-message("** Build Summary **")
-message("  Version:        ${lucene++_VERSION}")
-message("  Prefix:         ${CMAKE_INSTALL_PREFIX}")
-message("  Build Type:     ${CMAKE_BUILD_TYPE}")
-message("  Architecture:   ${CMAKE_SYSTEM_PROCESSOR}")
-message("  System:         ${CMAKE_SYSTEM_NAME}")
-message("  Boost Include:  ${Boost_INCLUDE_DIRS}")
-message("  Boost Library:  ${Boost_LIBRARY_DIRS}")
+add_executable(LucenePlusPlus
+        cmake/cmake_uninstall.cmake.in
+        cmake/cotire.cmake
+        cmake/CreateLucene++Packages.cmake
+        cmake/Lucene++Docs.cmake
+        cmake/MacroEnsureVersion.cmake
+        cmake/Toolchain-g++32.cmake
+        cmake/Toolchain-llvm.cmake
+        cmake/Toolchain-mingw32.cmake
+        cmake-build-debug/include/Config.h
+        cmake-build-debug/src/contrib/lucene++-contrib_C_cotire.cmake
+        cmake-build-debug/src/contrib/lucene++-contrib_CXX_cotire.cmake
+        cmake-build-debug/src/core/lucene++_C_cotire.cmake
+        cmake-build-debug/src/core/lucene++_CXX_cotire.cmake
+        cmake-build-debug/src/test/lucene++-tester_CXX_cotire.cmake
+        cmake-build-debug/cmake_install.cmake
+        cmake-build-debug/cmake_uninstall.cmake
+        cmake-build-debug/CMakeCache.txt
+        cmake-build-debug/liblucene++-contrib.pc
+        cmake-build-debug/liblucene++.pc
+        cmake-build-debug/LucenePlusPlus.cbp
+        cmake-build-debug/Makefile
+        doc/Doxyfile.cmake
+        doc/doxygen.css.cmake
+        doc/helpfooter.htm.cmake
+        doc/helpheader.htm.cmake
+        doxygen/lucene++
+        include/AbstractAllTermDocs.h
+        include/AbstractField.h
+        include/AllTermDocs.h
+        include/Analyzer.h
+        include/Array.h
+        include/ASCIIFoldingFilter.h
+        include/Attribute.h
+        include/AttributeSource.h
+        include/AveragePayloadFunction.h
+        include/Base64.h
+        include/BaseCharFilter.h
+        include/BitSet.h
+        include/BitUtil.h
+        include/BitVector.h
+        include/BooleanClause.h
+        include/BooleanQuery.h
+        include/BooleanScorer.h
+        include/BooleanScorer2.h
+        include/BufferedDeletes.h
+        include/BufferedIndexInput.h
+        include/BufferedIndexOutput.h
+        include/BufferedReader.h
+        include/ByteBlockPool.h
+        include/ByteFieldSource.h
+        include/ByteSliceReader.h
+        include/ByteSliceWriter.h
+        include/CachingSpanFilter.h
+        include/CachingTokenFilter.h
+        include/CachingWrapperFilter.h
+        include/CharArraySet.h
+        include/CharBlockPool.h
+        include/CharFilter.h
+        include/CharFolder.h
+        include/CharReader.h
+        include/CharStream.h
+        include/CharTokenizer.h
+        include/CheckIndex.h
+        include/ChecksumIndexInput.h
+        include/ChecksumIndexOutput.h
+        include/CloseableThreadLocal.h
+        include/Collator.h
+        include/Collection.h
+        include/Collector.h
+        include/ComplexExplanation.h
+        include/CompoundFileReader.h
+        include/CompoundFileWriter.h
+        include/CompressionTools.h
+        include/ConcurrentMergeScheduler.h
+        include/ConjunctionScorer.h
+        include/Constants.h
+        include/ConstantScoreQuery.h
+        include/CustomScoreProvider.h
+        include/CustomScoreQuery.h
+        include/CycleCheck.h
+        include/DateField.h
+        include/DateTools.h
+        include/DefaultSimilarity.h
+        include/DefaultSkipListReader.h
+        include/DefaultSkipListWriter.h
+        include/Directory.h
+        include/DirectoryReader.h
+        include/DisjunctionMaxQuery.h
+        include/DisjunctionMaxScorer.h
+        include/DisjunctionSumScorer.h
+        include/DocConsumer.h
+        include/DocConsumerPerThread.h
+        include/DocFieldConsumer.h
+        include/DocFieldConsumerPerField.h
+        include/DocFieldConsumerPerThread.h
+        include/DocFieldConsumers.h
+        include/DocFieldConsumersPerField.h
+        include/DocFieldConsumersPerThread.h
+        include/DocFieldProcessor.h
+        include/DocFieldProcessorPerField.h
+        include/DocFieldProcessorPerThread.h
+        include/DocIdBitSet.h
+        include/DocIdSet.h
+        include/DocIdSetIterator.h
+        include/DocInverter.h
+        include/DocInverterPerField.h
+        include/DocInverterPerThread.h
+        include/Document.h
+        include/DocumentsWriter.h
+        include/DocumentsWriterThreadState.h
+        include/DocValues.h
+        include/DoubleFieldSource.h
+        include/ExactPhraseScorer.h
+        include/Explanation.h
+        include/FastCharStream.h
+        include/Field.h
+        include/Fieldable.h
+        include/FieldCache.h
+        include/FieldCacheImpl.h
+        include/FieldCacheRangeFilter.h
+        include/FieldCacheSanityChecker.h
+        include/FieldCacheSource.h
+        include/FieldCacheTermsFilter.h
+        include/FieldComparator.h
+        include/FieldComparatorSource.h
+        include/FieldDoc.h
+        include/FieldDocSortedHitQueue.h
+        include/FieldInfo.h
+        include/FieldInfos.h
+        include/FieldInvertState.h
+        include/FieldMaskingSpanQuery.h
+        include/FieldScoreQuery.h
+        include/FieldSelector.h
+        include/FieldSortedTermVectorMapper.h
+        include/FieldsReader.h
+        include/FieldsWriter.h
+        include/FieldValueHitQueue.h
+        include/FileReader.h
+        include/FileSwitchDirectory.h
+        include/FileUtils.h
+        include/Filter.h
+        include/FilteredDocIdSet.h
+        include/FilteredDocIdSetIterator.h
+        include/FilteredQuery.h
+        include/FilteredTermEnum.h
+        include/FilterIndexReader.h
+        include/FilterManager.h
+        include/FlagsAttribute.h
+        include/FormatPostingsDocsConsumer.h
+        include/FormatPostingsDocsWriter.h
+        include/FormatPostingsFieldsConsumer.h
+        include/FormatPostingsFieldsWriter.h
+        include/FormatPostingsPositionsConsumer.h
+        include/FormatPostingsPositionsWriter.h
+        include/FormatPostingsTermsConsumer.h
+        include/FormatPostingsTermsWriter.h
+        include/FreqProxFieldMergeState.h
+        include/FreqProxTermsWriter.h
+        include/FreqProxTermsWriterPerField.h
+        include/FreqProxTermsWriterPerThread.h
+        include/FSDirectory.h
+        include/FSLockFactory.h
+        include/FuzzyQuery.h
+        include/FuzzyTermEnum.h
+        include/HashMap.h
+        include/HashSet.h
+        include/HitQueue.h
+        include/HitQueueBase.h
+        include/IndexCommit.h
+        include/IndexDeletionPolicy.h
+        include/IndexFileDeleter.h
+        include/IndexFileNameFilter.h
+        include/IndexFileNames.h
+        include/IndexInput.h
+        include/IndexOutput.h
+        include/IndexReader.h
+        include/IndexSearcher.h
+        include/IndexWriter.h
+        include/InfoStream.h
+        include/InputStreamReader.h
+        include/IntBlockPool.h
+        include/IntFieldSource.h
+        include/InvertedDocConsumer.h
+        include/InvertedDocConsumerPerField.h
+        include/InvertedDocConsumerPerThread.h
+        include/InvertedDocEndConsumer.h
+        include/InvertedDocEndConsumerPerField.h
+        include/InvertedDocEndConsumerPerThread.h
+        include/ISOLatin1AccentFilter.h
+        include/KeepOnlyLastCommitDeletionPolicy.h
+        include/KeywordAnalyzer.h
+        include/KeywordTokenizer.h
+        include/LengthFilter.h
+        include/LetterTokenizer.h
+        include/LoadFirstFieldSelector.h
+        include/Lock.h
+        include/LockFactory.h
+        include/LogByteSizeMergePolicy.h
+        include/LogDocMergePolicy.h
+        include/LogMergePolicy.h
+        include/LowerCaseFilter.h
+        include/LowerCaseTokenizer.h
+        include/Lucene.h
+        include/LuceneAllocator.h
+        include/LuceneException.h
+        include/LuceneFactory.h
+        include/LuceneHeaders.h
+        include/LuceneObject.h
+        include/LuceneSignal.h
+        include/LuceneSync.h
+        include/LuceneThread.h
+        include/LuceneTypes.h
+        include/Map.h
+        include/MapFieldSelector.h
+        include/MapOfSets.h
+        include/MappingCharFilter.h
+        include/MatchAllDocsQuery.h
+        include/MaxPayloadFunction.h
+        include/MergeDocIDRemapper.h
+        include/MergePolicy.h
+        include/MergeScheduler.h
+        include/MinPayloadFunction.h
+        include/MiscUtils.h
+        include/MMapDirectory.h
+        include/MultiFieldQueryParser.h
+        include/MultiLevelSkipListReader.h
+        include/MultiLevelSkipListWriter.h
+        include/MultiPhraseQuery.h
+        include/MultipleTermPositions.h
+        include/MultiReader.h
+        include/MultiSearcher.h
+        include/MultiTermQuery.h
+        include/MultiTermQueryWrapperFilter.h
+        include/NativeFSLockFactory.h
+        include/NearSpansOrdered.h
+        include/NearSpansUnordered.h
+        include/NoLockFactory.h
+        include/NormalizeCharMap.h
+        include/NormsWriter.h
+        include/NormsWriterPerField.h
+        include/NormsWriterPerThread.h
+        include/NumberTools.h
+        include/NumericField.h
+        include/NumericRangeFilter.h
+        include/NumericRangeQuery.h
+        include/NumericTokenStream.h
+        include/NumericUtils.h
+        include/OffsetAttribute.h
+        include/OpenBitSet.h
+        include/OpenBitSetDISI.h
+        include/OpenBitSetIterator.h
+        include/OrdFieldSource.h
+        include/ParallelMultiSearcher.h
+        include/ParallelReader.h
+        include/Payload.h
+        include/PayloadAttribute.h
+        include/PayloadFunction.h
+        include/PayloadNearQuery.h
+        include/PayloadSpanUtil.h
+        include/PayloadTermQuery.h
+        include/PerFieldAnalyzerWrapper.h
+        include/PhrasePositions.h
+        include/PhraseQuery.h
+        include/PhraseQueue.h
+        include/PhraseScorer.h
+        include/PorterStemFilter.h
+        include/PorterStemmer.h
+        include/PositionBasedTermVectorMapper.h
+        include/PositionIncrementAttribute.h
+        include/PositiveScoresOnlyCollector.h
+        include/PrefixFilter.h
+        include/PrefixQuery.h
+        include/PrefixTermEnum.h
+        include/PriorityQueue.h
+        include/Query.h
+        include/QueryParseError.h
+        include/QueryParser.h
+        include/QueryParserCharStream.h
+        include/QueryParserConstants.h
+        include/QueryParserToken.h
+        include/QueryParserTokenManager.h
+        include/QueryTermVector.h
+        include/QueryWrapperFilter.h
+        include/RAMDirectory.h
+        include/RAMFile.h
+        include/RAMInputStream.h
+        include/RAMOutputStream.h
+        include/Random.h
+        include/RawPostingList.h
+        include/Reader.h
+        include/ReaderUtil.h
+        include/ReadOnlyDirectoryReader.h
+        include/ReadOnlySegmentReader.h
+        include/ReqExclScorer.h
+        include/ReqOptSumScorer.h
+        include/ReusableStringReader.h
+        include/ReverseOrdFieldSource.h
+        include/ScoreCachingWrappingScorer.h
+        include/ScoreDoc.h
+        include/Scorer.h
+        include/ScorerDocQueue.h
+        include/Searchable.h
+        include/Searcher.h
+        include/SegmentInfo.h
+        include/SegmentInfoCollection.h
+        include/SegmentInfos.h
+        include/SegmentMergeInfo.h
+        include/SegmentMergeQueue.h
+        include/SegmentMerger.h
+        include/SegmentReader.h
+        include/SegmentTermDocs.h
+        include/SegmentTermEnum.h
+        include/SegmentTermPositions.h
+        include/SegmentTermPositionVector.h
+        include/SegmentTermVector.h
+        include/SegmentWriteState.h
+        include/SerialMergeScheduler.h
+        include/Set.h
+        include/SetBasedFieldSelector.h
+        include/Similarity.h
+        include/SimilarityDelegator.h
+        include/SimpleAnalyzer.h
+        include/SimpleFSDirectory.h
+        include/SimpleFSLockFactory.h
+        include/SimpleLRUCache.h
+        include/SingleInstanceLockFactory.h
+        include/SingleTermEnum.h
+        include/SloppyPhraseScorer.h
+        include/SmallDouble.h
+        include/SnapshotDeletionPolicy.h
+        include/Sort.h
+        include/SortedTermVectorMapper.h
+        include/SortedVIntList.h
+        include/SortField.h
+        include/SpanFilter.h
+        include/SpanFilterResult.h
+        include/SpanFirstQuery.h
+        include/SpanNearQuery.h
+        include/SpanNotQuery.h
+        include/SpanOrQuery.h
+        include/SpanQuery.h
+        include/SpanQueryFilter.h
+        include/Spans.h
+        include/SpanScorer.h
+        include/SpanTermQuery.h
+        include/SpanWeight.h
+        include/StandardAnalyzer.h
+        include/StandardFilter.h
+        include/StandardTokenizer.h
+        include/StandardTokenizerImpl.h
+        include/StopAnalyzer.h
+        include/StopFilter.h
+        include/StoredFieldsWriter.h
+        include/StoredFieldsWriterPerThread.h
+        include/StringReader.h
+        include/StringUtils.h
+        include/Synchronize.h
+        include/targetver.h
+        include/TeeSinkTokenFilter.h
+        include/Term.h
+        include/TermAttribute.h
+        include/TermBuffer.h
+        include/TermDocs.h
+        include/TermEnum.h
+        include/TermFreqVector.h
+        include/TermInfo.h
+        include/TermInfosReader.h
+        include/TermInfosWriter.h
+        include/TermPositions.h
+        include/TermPositionVector.h
+        include/TermQuery.h
+        include/TermRangeFilter.h
+        include/TermRangeQuery.h
+        include/TermRangeTermEnum.h
+        include/TermScorer.h
+        include/TermsHash.h
+        include/TermsHashConsumer.h
+        include/TermsHashConsumerPerField.h
+        include/TermsHashConsumerPerThread.h
+        include/TermsHashPerField.h
+        include/TermsHashPerThread.h
+        include/TermSpans.h
+        include/TermVectorEntry.h
+        include/TermVectorEntryFreqSortedComparator.h
+        include/TermVectorMapper.h
+        include/TermVectorOffsetInfo.h
+        include/TermVectorsReader.h
+        include/TermVectorsTermsWriter.h
+        include/TermVectorsTermsWriterPerField.h
+        include/TermVectorsTermsWriterPerThread.h
+        include/TermVectorsWriter.h
+        include/TestPoint.h
+        include/ThreadPool.h
+        include/TimeLimitingCollector.h
+        include/Token.h
+        include/TokenFilter.h
+        include/Tokenizer.h
+        include/TokenStream.h
+        include/TopDocs.h
+        include/TopDocsCollector.h
+        include/TopFieldCollector.h
+        include/TopFieldDocs.h
+        include/TopScoreDocCollector.h
+        include/TypeAttribute.h
+        include/UnicodeUtils.h
+        include/UTF8Stream.h
+        include/ValueSource.h
+        include/ValueSourceQuery.h
+        include/VariantUtils.h
+        include/Weight.h
+        include/WhitespaceAnalyzer.h
+        include/WhitespaceTokenizer.h
+        include/WildcardQuery.h
+        include/WildcardTermEnum.h
+        include/WordlistLoader.h
+        src/contrib/analyzers/common/analysis/ar/ArabicAnalyzer.cpp
+        src/contrib/analyzers/common/analysis/ar/ArabicLetterTokenizer.cpp
+        src/contrib/analyzers/common/analysis/ar/ArabicNormalizationFilter.cpp
+        src/contrib/analyzers/common/analysis/ar/ArabicNormalizer.cpp
+        src/contrib/analyzers/common/analysis/ar/ArabicStemFilter.cpp
+        src/contrib/analyzers/common/analysis/ar/ArabicStemmer.cpp
+        src/contrib/analyzers/common/analysis/br/BrazilianAnalyzer.cpp
+        src/contrib/analyzers/common/analysis/br/BrazilianStemFilter.cpp
+        src/contrib/analyzers/common/analysis/br/BrazilianStemmer.cpp
+        src/contrib/analyzers/common/analysis/cjk/CJKAnalyzer.cpp
+        src/contrib/analyzers/common/analysis/cjk/CJKTokenizer.cpp
+        src/contrib/analyzers/common/analysis/cn/ChineseAnalyzer.cpp
+        src/contrib/analyzers/common/analysis/cn/ChineseFilter.cpp
+        src/contrib/analyzers/common/analysis/cn/ChineseTokenizer.cpp
+        src/contrib/analyzers/common/analysis/cz/CzechAnalyzer.cpp
+        src/contrib/analyzers/common/analysis/de/GermanAnalyzer.cpp
+        src/contrib/analyzers/common/analysis/de/GermanStemFilter.cpp
+        src/contrib/analyzers/common/analysis/de/GermanStemmer.cpp
+        src/contrib/analyzers/common/analysis/el/GreekAnalyzer.cpp
+        src/contrib/analyzers/common/analysis/el/GreekLowerCaseFilter.cpp
+        src/contrib/analyzers/common/analysis/fa/PersianAnalyzer.cpp
+        src/contrib/analyzers/common/analysis/fa/PersianNormalizationFilter.cpp
+        src/contrib/analyzers/common/analysis/fa/PersianNormalizer.cpp
+        src/contrib/analyzers/common/analysis/fr/ElisionFilter.cpp
+        src/contrib/analyzers/common/analysis/fr/FrenchAnalyzer.cpp
+        src/contrib/analyzers/common/analysis/fr/FrenchStemFilter.cpp
+        src/contrib/analyzers/common/analysis/fr/FrenchStemmer.cpp
+        src/contrib/analyzers/common/analysis/nl/DutchAnalyzer.cpp
+        src/contrib/analyzers/common/analysis/nl/DutchStemFilter.cpp
+        src/contrib/analyzers/common/analysis/nl/DutchStemmer.cpp
+        src/contrib/analyzers/common/analysis/reverse/ReverseStringFilter.cpp
+        src/contrib/analyzers/common/analysis/ru/RussianAnalyzer.cpp
+        src/contrib/analyzers/common/analysis/ru/RussianLetterTokenizer.cpp
+        src/contrib/analyzers/common/analysis/ru/RussianLowerCaseFilter.cpp
+        src/contrib/analyzers/common/analysis/ru/RussianStemFilter.cpp
+        src/contrib/analyzers/common/analysis/ru/RussianStemmer.cpp
+        src/contrib/highlighter/DefaultEncoder.cpp
+        src/contrib/highlighter/Encoder.cpp
+        src/contrib/highlighter/Formatter.cpp
+        src/contrib/highlighter/Fragmenter.cpp
+        src/contrib/highlighter/GradientFormatter.cpp
+        src/contrib/highlighter/Highlighter.cpp
+        src/contrib/highlighter/HighlighterScorer.cpp
+        src/contrib/highlighter/MapWeightedSpanTerm.cpp
+        src/contrib/highlighter/NullFragmenter.cpp
+        src/contrib/highlighter/QueryScorer.cpp
+        src/contrib/highlighter/QueryTermExtractor.cpp
+        src/contrib/highlighter/QueryTermScorer.cpp
+        src/contrib/highlighter/SimpleFragmenter.cpp
+        src/contrib/highlighter/SimpleHTMLEncoder.cpp
+        src/contrib/highlighter/SimpleHTMLFormatter.cpp
+        src/contrib/highlighter/SimpleSpanFragmenter.cpp
+        src/contrib/highlighter/SpanGradientFormatter.cpp
+        src/contrib/highlighter/TextFragment.cpp
+        src/contrib/highlighter/TokenGroup.cpp
+        src/contrib/highlighter/TokenSources.cpp
+        src/contrib/highlighter/WeightedSpanTerm.cpp
+        src/contrib/highlighter/WeightedSpanTermExtractor.cpp
+        src/contrib/highlighter/WeightedTerm.cpp
+        src/contrib/include/ArabicAnalyzer.h
+        src/contrib/include/ArabicLetterTokenizer.h
+        src/contrib/include/ArabicNormalizationFilter.h
+        src/contrib/include/ArabicNormalizer.h
+        src/contrib/include/ArabicStemFilter.h
+        src/contrib/include/ArabicStemmer.h
+        src/contrib/include/BrazilianAnalyzer.h
+        src/contrib/include/BrazilianStemFilter.h
+        src/contrib/include/BrazilianStemmer.h
+        src/contrib/include/ChineseAnalyzer.h
+        src/contrib/include/ChineseFilter.h
+        src/contrib/include/ChineseTokenizer.h
+        src/contrib/include/CJKAnalyzer.h
+        src/contrib/include/CJKTokenizer.h
+        src/contrib/include/ContribInc.h
+        src/contrib/include/CzechAnalyzer.h
+        src/contrib/include/DefaultEncoder.h
+        src/contrib/include/DutchAnalyzer.h
+        src/contrib/include/DutchStemFilter.h
+        src/contrib/include/DutchStemmer.h
+        src/contrib/include/ElisionFilter.h
+        src/contrib/include/Encoder.h
+        src/contrib/include/Formatter.h
+        src/contrib/include/Fragmenter.h
+        src/contrib/include/FrenchAnalyzer.h
+        src/contrib/include/FrenchStemFilter.h
+        src/contrib/include/FrenchStemmer.h
+        src/contrib/include/GermanAnalyzer.h
+        src/contrib/include/GermanStemFilter.h
+        src/contrib/include/GermanStemmer.h
+        src/contrib/include/GradientFormatter.h
+        src/contrib/include/GreekAnalyzer.h
+        src/contrib/include/GreekLowerCaseFilter.h
+        src/contrib/include/Highlighter.h
+        src/contrib/include/HighlighterScorer.h
+        src/contrib/include/LuceneContrib.h
+        src/contrib/include/MapWeightedSpanTerm.h
+        src/contrib/include/MemoryIndex.h
+        src/contrib/include/NullFragmenter.h
+        src/contrib/include/PersianAnalyzer.h
+        src/contrib/include/PersianNormalizationFilter.h
+        src/contrib/include/PersianNormalizer.h
+        src/contrib/include/QueryScorer.h
+        src/contrib/include/QueryTermExtractor.h
+        src/contrib/include/QueryTermScorer.h
+        src/contrib/include/ReverseStringFilter.h
+        src/contrib/include/RussianAnalyzer.h
+        src/contrib/include/RussianLetterTokenizer.h
+        src/contrib/include/RussianLowerCaseFilter.h
+        src/contrib/include/RussianStemFilter.h
+        src/contrib/include/RussianStemmer.h
+        src/contrib/include/SimpleFragmenter.h
+        src/contrib/include/SimpleHTMLEncoder.h
+        src/contrib/include/SimpleHTMLFormatter.h
+        src/contrib/include/SimpleSpanFragmenter.h
+        src/contrib/include/SnowballAnalyzer.h
+        src/contrib/include/SnowballFilter.h
+        src/contrib/include/SpanGradientFormatter.h
+        src/contrib/include/TextFragment.h
+        src/contrib/include/TokenGroup.h
+        src/contrib/include/TokenSources.h
+        src/contrib/include/WeightedSpanTerm.h
+        src/contrib/include/WeightedSpanTermExtractor.h
+        src/contrib/include/WeightedTerm.h
+        src/contrib/memory/MemoryIndex.cpp
+        src/contrib/msvc/ContribInc.cpp
+        src/contrib/msvc/dllmain.cpp
+        src/contrib/snowball/libstemmer_c/examples/stemwords.c
+        src/contrib/snowball/libstemmer_c/include/libstemmer.h
+        src/contrib/snowball/libstemmer_c/libstemmer/libstemmer.c
+        src/contrib/snowball/libstemmer_c/libstemmer/libstemmer_utf8.c
+        src/contrib/snowball/libstemmer_c/libstemmer/modules.h
+        src/contrib/snowball/libstemmer_c/libstemmer/modules_utf8.h
+        src/contrib/snowball/libstemmer_c/runtime/api.c
+        src/contrib/snowball/libstemmer_c/runtime/api.h
+        src/contrib/snowball/libstemmer_c/runtime/header.h
+        src/contrib/snowball/libstemmer_c/runtime/utilities.c
+        src/contrib/snowball/libstemmer_c/src_c/stem_ISO_8859_1_danish.c
+        src/contrib/snowball/libstemmer_c/src_c/stem_ISO_8859_1_danish.h
+        src/contrib/snowball/libstemmer_c/src_c/stem_ISO_8859_1_dutch.c
+        src/contrib/snowball/libstemmer_c/src_c/stem_ISO_8859_1_dutch.h
+        src/contrib/snowball/libstemmer_c/src_c/stem_ISO_8859_1_english.c
+        src/contrib/snowball/libstemmer_c/src_c/stem_ISO_8859_1_english.h
+        src/contrib/snowball/libstemmer_c/src_c/stem_ISO_8859_1_finnish.c
+        src/contrib/snowball/libstemmer_c/src_c/stem_ISO_8859_1_finnish.h
+        src/contrib/snowball/libstemmer_c/src_c/stem_ISO_8859_1_french.c
+        src/contrib/snowball/libstemmer_c/src_c/stem_ISO_8859_1_french.h
+        src/contrib/snowball/libstemmer_c/src_c/stem_ISO_8859_1_german.c
+        src/contrib/snowball/libstemmer_c/src_c/stem_ISO_8859_1_german.h
+        src/contrib/snowball/libstemmer_c/src_c/stem_ISO_8859_1_hungarian.c
+        src/contrib/snowball/libstemmer_c/src_c/stem_ISO_8859_1_hungarian.h
+        src/contrib/snowball/libstemmer_c/src_c/stem_ISO_8859_1_italian.c
+        src/contrib/snowball/libstemmer_c/src_c/stem_ISO_8859_1_italian.h
+        src/contrib/snowball/libstemmer_c/src_c/stem_ISO_8859_1_norwegian.c
+        src/contrib/snowball/libstemmer_c/src_c/stem_ISO_8859_1_norwegian.h
+        src/contrib/snowball/libstemmer_c/src_c/stem_ISO_8859_1_porter.c
+        src/contrib/snowball/libstemmer_c/src_c/stem_ISO_8859_1_porter.h
+        src/contrib/snowball/libstemmer_c/src_c/stem_ISO_8859_1_portuguese.c
+        src/contrib/snowball/libstemmer_c/src_c/stem_ISO_8859_1_portuguese.h
+        src/contrib/snowball/libstemmer_c/src_c/stem_ISO_8859_1_spanish.c
+        src/contrib/snowball/libstemmer_c/src_c/stem_ISO_8859_1_spanish.h
+        src/contrib/snowball/libstemmer_c/src_c/stem_ISO_8859_1_swedish.c
+        src/contrib/snowball/libstemmer_c/src_c/stem_ISO_8859_1_swedish.h
+        src/contrib/snowball/libstemmer_c/src_c/stem_ISO_8859_2_romanian.c
+        src/contrib/snowball/libstemmer_c/src_c/stem_ISO_8859_2_romanian.h
+        src/contrib/snowball/libstemmer_c/src_c/stem_KOI8_R_russian.c
+        src/contrib/snowball/libstemmer_c/src_c/stem_KOI8_R_russian.h
+        src/contrib/snowball/libstemmer_c/src_c/stem_UTF_8_danish.c
+        src/contrib/snowball/libstemmer_c/src_c/stem_UTF_8_danish.h
+        src/contrib/snowball/libstemmer_c/src_c/stem_UTF_8_dutch.c
+        src/contrib/snowball/libstemmer_c/src_c/stem_UTF_8_dutch.h
+        src/contrib/snowball/libstemmer_c/src_c/stem_UTF_8_english.c
+        src/contrib/snowball/libstemmer_c/src_c/stem_UTF_8_english.h
+        src/contrib/snowball/libstemmer_c/src_c/stem_UTF_8_finnish.c
+        src/contrib/snowball/libstemmer_c/src_c/stem_UTF_8_finnish.h
+        src/contrib/snowball/libstemmer_c/src_c/stem_UTF_8_french.c
+        src/contrib/snowball/libstemmer_c/src_c/stem_UTF_8_french.h
+        src/contrib/snowball/libstemmer_c/src_c/stem_UTF_8_german.c
+        src/contrib/snowball/libstemmer_c/src_c/stem_UTF_8_german.h
+        src/contrib/snowball/libstemmer_c/src_c/stem_UTF_8_hungarian.c
+        src/contrib/snowball/libstemmer_c/src_c/stem_UTF_8_hungarian.h
+        src/contrib/snowball/libstemmer_c/src_c/stem_UTF_8_italian.c
+        src/contrib/snowball/libstemmer_c/src_c/stem_UTF_8_italian.h
+        src/contrib/snowball/libstemmer_c/src_c/stem_UTF_8_norwegian.c
+        src/contrib/snowball/libstemmer_c/src_c/stem_UTF_8_norwegian.h
+        src/contrib/snowball/libstemmer_c/src_c/stem_UTF_8_porter.c
+        src/contrib/snowball/libstemmer_c/src_c/stem_UTF_8_porter.h
+        src/contrib/snowball/libstemmer_c/src_c/stem_UTF_8_portuguese.c
+        src/contrib/snowball/libstemmer_c/src_c/stem_UTF_8_portuguese.h
+        src/contrib/snowball/libstemmer_c/src_c/stem_UTF_8_romanian.c
+        src/contrib/snowball/libstemmer_c/src_c/stem_UTF_8_romanian.h
+        src/contrib/snowball/libstemmer_c/src_c/stem_UTF_8_russian.c
+        src/contrib/snowball/libstemmer_c/src_c/stem_UTF_8_russian.h
+        src/contrib/snowball/libstemmer_c/src_c/stem_UTF_8_spanish.c
+        src/contrib/snowball/libstemmer_c/src_c/stem_UTF_8_spanish.h
+        src/contrib/snowball/libstemmer_c/src_c/stem_UTF_8_swedish.c
+        src/contrib/snowball/libstemmer_c/src_c/stem_UTF_8_swedish.h
+        src/contrib/snowball/libstemmer_c/src_c/stem_UTF_8_turkish.c
+        src/contrib/snowball/libstemmer_c/src_c/stem_UTF_8_turkish.h
+        src/contrib/snowball/SnowballAnalyzer.cpp
+        src/contrib/snowball/SnowballFilter.cpp
+        src/core/analysis/standard/StandardAnalyzer.cpp
+        src/core/analysis/standard/StandardFilter.cpp
+        src/core/analysis/standard/StandardTokenizer.cpp
+        src/core/analysis/standard/StandardTokenizerImpl.cpp
+        src/core/analysis/tokenattributes/FlagsAttribute.cpp
+        src/core/analysis/tokenattributes/OffsetAttribute.cpp
+        src/core/analysis/tokenattributes/PayloadAttribute.cpp
+        src/core/analysis/tokenattributes/PositionIncrementAttribute.cpp
+        src/core/analysis/tokenattributes/TermAttribute.cpp
+        src/core/analysis/tokenattributes/TypeAttribute.cpp
+        src/core/analysis/Analyzer.cpp
+        src/core/analysis/ASCIIFoldingFilter.cpp
+        src/core/analysis/BaseCharFilter.cpp
+        src/core/analysis/CachingTokenFilter.cpp
+        src/core/analysis/CharArraySet.cpp
+        src/core/analysis/CharFilter.cpp
+        src/core/analysis/CharReader.cpp
+        src/core/analysis/CharStream.cpp
+        src/core/analysis/CharTokenizer.cpp
+        src/core/analysis/ISOLatin1AccentFilter.cpp
+        src/core/analysis/KeywordAnalyzer.cpp
+        src/core/analysis/KeywordTokenizer.cpp
+        src/core/analysis/LengthFilter.cpp
+        src/core/analysis/LetterTokenizer.cpp
+        src/core/analysis/LowerCaseFilter.cpp
+        src/core/analysis/LowerCaseTokenizer.cpp
+        src/core/analysis/MappingCharFilter.cpp
+        src/core/analysis/NormalizeCharMap.cpp
+        src/core/analysis/NumericTokenStream.cpp
+        src/core/analysis/PerFieldAnalyzerWrapper.cpp
+        src/core/analysis/PorterStemFilter.cpp
+        src/core/analysis/PorterStemmer.cpp
+        src/core/analysis/SimpleAnalyzer.cpp
+        src/core/analysis/StopAnalyzer.cpp
+        src/core/analysis/StopFilter.cpp
+        src/core/analysis/TeeSinkTokenFilter.cpp
+        src/core/analysis/Token.cpp
+        src/core/analysis/TokenFilter.cpp
+        src/core/analysis/Tokenizer.cpp
+        src/core/analysis/TokenStream.cpp
+        src/core/analysis/WhitespaceAnalyzer.cpp
+        src/core/analysis/WhitespaceTokenizer.cpp
+        src/core/analysis/WordlistLoader.cpp
+        src/core/document/AbstractField.cpp
+        src/core/document/CompressionTools.cpp
+        src/core/document/DateField.cpp
+        src/core/document/DateTools.cpp
+        src/core/document/Document.cpp
+        src/core/document/Field.cpp
+        src/core/document/Fieldable.cpp
+        src/core/document/FieldSelector.cpp
+        src/core/document/LoadFirstFieldSelector.cpp
+        src/core/document/MapFieldSelector.cpp
+        src/core/document/NumberTools.cpp
+        src/core/document/NumericField.cpp
+        src/core/document/SetBasedFieldSelector.cpp
+        src/core/include/_BooleanQuery.h
+        src/core/include/_ByteFieldSource.h
+        src/core/include/_CachingSpanFilter.h
+        src/core/include/_CachingWrapperFilter.h
+        src/core/include/_CheckIndex.h
+        src/core/include/_ConcurrentMergeScheduler.h
+        src/core/include/_ConstantScoreQuery.h
+        src/core/include/_CustomScoreQuery.h
+        src/core/include/_DirectoryReader.h
+        src/core/include/_DisjunctionMaxQuery.h
+        src/core/include/_DocIdBitSet.h
+        src/core/include/_DocIdSet.h
+        src/core/include/_FieldCache.h
+        src/core/include/_FieldCacheRangeFilter.h
+        src/core/include/_FieldCacheSanityChecker.h
+        src/core/include/_FieldCacheTermsFilter.h
+        src/core/include/_FieldValueHitQueue.h
+        src/core/include/_FilteredDocIdSet.h
+        src/core/include/_FilteredQuery.h
+        src/core/include/_FilterManager.h
+        src/core/include/_FuzzyQuery.h
+        src/core/include/_IndexReader.h
+        src/core/include/_IndexWriter.h
+        src/core/include/_IntFieldSource.h
+        src/core/include/_MatchAllDocsQuery.h
+        src/core/include/_MMapDirectory.h
+        src/core/include/_MultiPhraseQuery.h
+        src/core/include/_MultipleTermPositions.h
+        src/core/include/_MultiSearcher.h
+        src/core/include/_MultiTermQuery.h
+        src/core/include/_NativeFSLockFactory.h
+        src/core/include/_NearSpansUnordered.h
+        src/core/include/_NoLockFactory.h
+        src/core/include/_NumericRangeQuery.h
+        src/core/include/_OrdFieldSource.h
+        src/core/include/_ParallelReader.h
+        src/core/include/_PayloadTermQuery.h
+        src/core/include/_PhraseQuery.h
+        src/core/include/_QueryWrapperFilter.h
+        src/core/include/_ReverseOrdFieldSource.h
+        src/core/include/_ScorerDocQueue.h
+        src/core/include/_SegmentInfos.h
+        src/core/include/_SegmentReader.h
+        src/core/include/_Similarity.h
+        src/core/include/_SimpleFSDirectory.h
+        src/core/include/_SimpleFSLockFactory.h
+        src/core/include/_SingleInstanceLockFactory.h
+        src/core/include/_SnapshotDeletionPolicy.h
+        src/core/include/_SortedVIntList.h
+        src/core/include/_SpanFirstQuery.h
+        src/core/include/_SpanNotQuery.h
+        src/core/include/_SpanOrQuery.h
+        src/core/include/_StandardAnalyzer.h
+        src/core/include/_StopAnalyzer.h
+        src/core/include/_TermQuery.h
+        src/core/include/_TimeLimitingCollector.h
+        src/core/include/_TopFieldCollector.h
+        src/core/include/_TopScoreDocCollector.h
+        src/core/include/_ValueSourceQuery.h
+        src/core/include/LuceneInc.h
+        src/core/index/AbstractAllTermDocs.cpp
+        src/core/index/AllTermDocs.cpp
+        src/core/index/BufferedDeletes.cpp
+        src/core/index/ByteBlockPool.cpp
+        src/core/index/ByteSliceReader.cpp
+        src/core/index/ByteSliceWriter.cpp
+        src/core/index/CharBlockPool.cpp
+        src/core/index/CheckIndex.cpp
+        src/core/index/CompoundFileReader.cpp
+        src/core/index/CompoundFileWriter.cpp
+        src/core/index/ConcurrentMergeScheduler.cpp
+        src/core/index/DefaultSkipListReader.cpp
+        src/core/index/DefaultSkipListWriter.cpp
+        src/core/index/DirectoryReader.cpp
+        src/core/index/DocConsumer.cpp
+        src/core/index/DocConsumerPerThread.cpp
+        src/core/index/DocFieldConsumer.cpp
+        src/core/index/DocFieldConsumerPerField.cpp
+        src/core/index/DocFieldConsumerPerThread.cpp
+        src/core/index/DocFieldConsumers.cpp
+        src/core/index/DocFieldConsumersPerField.cpp
+        src/core/index/DocFieldConsumersPerThread.cpp
+        src/core/index/DocFieldProcessor.cpp
+        src/core/index/DocFieldProcessorPerField.cpp
+        src/core/index/DocFieldProcessorPerThread.cpp
+        src/core/index/DocInverter.cpp
+        src/core/index/DocInverterPerField.cpp
+        src/core/index/DocInverterPerThread.cpp
+        src/core/index/DocumentsWriter.cpp
+        src/core/index/DocumentsWriterThreadState.cpp
+        src/core/index/FieldInfo.cpp
+        src/core/index/FieldInfos.cpp
+        src/core/index/FieldInvertState.cpp
+        src/core/index/FieldSortedTermVectorMapper.cpp
+        src/core/index/FieldsReader.cpp
+        src/core/index/FieldsWriter.cpp
+        src/core/index/FilterIndexReader.cpp
+        src/core/index/FormatPostingsDocsConsumer.cpp
+        src/core/index/FormatPostingsDocsWriter.cpp
+        src/core/index/FormatPostingsFieldsConsumer.cpp
+        src/core/index/FormatPostingsFieldsWriter.cpp
+        src/core/index/FormatPostingsPositionsConsumer.cpp
+        src/core/index/FormatPostingsPositionsWriter.cpp
+        src/core/index/FormatPostingsTermsConsumer.cpp
+        src/core/index/FormatPostingsTermsWriter.cpp
+        src/core/index/FreqProxFieldMergeState.cpp
+        src/core/index/FreqProxTermsWriter.cpp
+        src/core/index/FreqProxTermsWriterPerField.cpp
+        src/core/index/FreqProxTermsWriterPerThread.cpp
+        src/core/index/IndexCommit.cpp
+        src/core/index/IndexDeletionPolicy.cpp
+        src/core/index/IndexFileDeleter.cpp
+        src/core/index/IndexFileNameFilter.cpp
+        src/core/index/IndexFileNames.cpp
+        src/core/index/IndexReader.cpp
+        src/core/index/IndexWriter.cpp
+        src/core/index/IntBlockPool.cpp
+        src/core/index/InvertedDocConsumer.cpp
+        src/core/index/InvertedDocConsumerPerField.cpp
+        src/core/index/InvertedDocConsumerPerThread.cpp
+        src/core/index/InvertedDocEndConsumer.cpp
+        src/core/index/InvertedDocEndConsumerPerField.cpp
+        src/core/index/InvertedDocEndConsumerPerThread.cpp
+        src/core/index/KeepOnlyLastCommitDeletionPolicy.cpp
+        src/core/index/LogByteSizeMergePolicy.cpp
+        src/core/index/LogDocMergePolicy.cpp
+        src/core/index/LogMergePolicy.cpp
+        src/core/index/MergeDocIDRemapper.cpp
+        src/core/index/MergePolicy.cpp
+        src/core/index/MergeScheduler.cpp
+        src/core/index/MultiLevelSkipListReader.cpp
+        src/core/index/MultiLevelSkipListWriter.cpp
+        src/core/index/MultipleTermPositions.cpp
+        src/core/index/MultiReader.cpp
+        src/core/index/NormsWriter.cpp
+        src/core/index/NormsWriterPerField.cpp
+        src/core/index/NormsWriterPerThread.cpp
+        src/core/index/ParallelReader.cpp
+        src/core/index/Payload.cpp
+        src/core/index/PositionBasedTermVectorMapper.cpp
+        src/core/index/RawPostingList.cpp
+        src/core/index/ReadOnlyDirectoryReader.cpp
+        src/core/index/ReadOnlySegmentReader.cpp
+        src/core/index/ReusableStringReader.cpp
+        src/core/index/SegmentInfo.cpp
+        src/core/index/SegmentInfoCollection.cpp
+        src/core/index/SegmentInfos.cpp
+        src/core/index/SegmentMergeInfo.cpp
+        src/core/index/SegmentMergeQueue.cpp
+        src/core/index/SegmentMerger.cpp
+        src/core/index/SegmentReader.cpp
+        src/core/index/SegmentTermDocs.cpp
+        src/core/index/SegmentTermEnum.cpp
+        src/core/index/SegmentTermPositions.cpp
+        src/core/index/SegmentTermPositionVector.cpp
+        src/core/index/SegmentTermVector.cpp
+        src/core/index/SegmentWriteState.cpp
+        src/core/index/SerialMergeScheduler.cpp
+        src/core/index/SnapshotDeletionPolicy.cpp
+        src/core/index/SortedTermVectorMapper.cpp
+        src/core/index/StoredFieldsWriter.cpp
+        src/core/index/StoredFieldsWriterPerThread.cpp
+        src/core/index/Term.cpp
+        src/core/index/TermBuffer.cpp
+        src/core/index/TermDocs.cpp
+        src/core/index/TermEnum.cpp
+        src/core/index/TermFreqVector.cpp
+        src/core/index/TermInfo.cpp
+        src/core/index/TermInfosReader.cpp
+        src/core/index/TermInfosWriter.cpp
+        src/core/index/TermPositions.cpp
+        src/core/index/TermPositionVector.cpp
+        src/core/index/TermsHash.cpp
+        src/core/index/TermsHashConsumer.cpp
+        src/core/index/TermsHashConsumerPerField.cpp
+        src/core/index/TermsHashConsumerPerThread.cpp
+        src/core/index/TermsHashPerField.cpp
+        src/core/index/TermsHashPerThread.cpp
+        src/core/index/TermVectorEntry.cpp
+        src/core/index/TermVectorEntryFreqSortedComparator.cpp
+        src/core/index/TermVectorMapper.cpp
+        src/core/index/TermVectorOffsetInfo.cpp
+        src/core/index/TermVectorsReader.cpp
+        src/core/index/TermVectorsTermsWriter.cpp
+        src/core/index/TermVectorsTermsWriterPerField.cpp
+        src/core/index/TermVectorsTermsWriterPerThread.cpp
+        src/core/index/TermVectorsWriter.cpp
+        src/core/msvc/dllmain.cpp
+        src/core/msvc/LuceneInc.cpp
+        src/core/queryparser/FastCharStream.cpp
+        src/core/queryparser/MultiFieldQueryParser.cpp
+        src/core/queryparser/QueryParseError.cpp
+        src/core/queryparser/QueryParser.cpp
+        src/core/queryparser/QueryParserCharStream.cpp
+        src/core/queryparser/QueryParserConstants.cpp
+        src/core/queryparser/QueryParserToken.cpp
+        src/core/queryparser/QueryParserTokenManager.cpp
+        src/core/search/function/ByteFieldSource.cpp
+        src/core/search/function/CustomScoreProvider.cpp
+        src/core/search/function/CustomScoreQuery.cpp
+        src/core/search/function/DocValues.cpp
+        src/core/search/function/DoubleFieldSource.cpp
+        src/core/search/function/FieldCacheSource.cpp
+        src/core/search/function/FieldScoreQuery.cpp
+        src/core/search/function/IntFieldSource.cpp
+        src/core/search/function/OrdFieldSource.cpp
+        src/core/search/function/ReverseOrdFieldSource.cpp
+        src/core/search/function/ValueSource.cpp
+        src/core/search/function/ValueSourceQuery.cpp
+        src/core/search/payloads/AveragePayloadFunction.cpp
+        src/core/search/payloads/MaxPayloadFunction.cpp
+        src/core/search/payloads/MinPayloadFunction.cpp
+        src/core/search/payloads/PayloadFunction.cpp
+        src/core/search/payloads/PayloadNearQuery.cpp
+        src/core/search/payloads/PayloadSpanUtil.cpp
+        src/core/search/payloads/PayloadTermQuery.cpp
+        src/core/search/spans/FieldMaskingSpanQuery.cpp
+        src/core/search/spans/NearSpansOrdered.cpp
+        src/core/search/spans/NearSpansUnordered.cpp
+        src/core/search/spans/SpanFirstQuery.cpp
+        src/core/search/spans/SpanNearQuery.cpp
+        src/core/search/spans/SpanNotQuery.cpp
+        src/core/search/spans/SpanOrQuery.cpp
+        src/core/search/spans/SpanQuery.cpp
+        src/core/search/spans/Spans.cpp
+        src/core/search/spans/SpanScorer.cpp
+        src/core/search/spans/SpanTermQuery.cpp
+        src/core/search/spans/SpanWeight.cpp
+        src/core/search/spans/TermSpans.cpp
+        src/core/search/BooleanClause.cpp
+        src/core/search/BooleanQuery.cpp
+        src/core/search/BooleanScorer.cpp
+        src/core/search/BooleanScorer2.cpp
+        src/core/search/CachingSpanFilter.cpp
+        src/core/search/CachingWrapperFilter.cpp
+        src/core/search/Collector.cpp
+        src/core/search/ComplexExplanation.cpp
+        src/core/search/ConjunctionScorer.cpp
+        src/core/search/ConstantScoreQuery.cpp
+        src/core/search/DefaultSimilarity.cpp
+        src/core/search/DisjunctionMaxQuery.cpp
+        src/core/search/DisjunctionMaxScorer.cpp
+        src/core/search/DisjunctionSumScorer.cpp
+        src/core/search/DocIdSet.cpp
+        src/core/search/DocIdSetIterator.cpp
+        src/core/search/ExactPhraseScorer.cpp
+        src/core/search/Explanation.cpp
+        src/core/search/FieldCache.cpp
+        src/core/search/FieldCacheImpl.cpp
+        src/core/search/FieldCacheRangeFilter.cpp
+        src/core/search/FieldCacheTermsFilter.cpp
+        src/core/search/FieldComparator.cpp
+        src/core/search/FieldComparatorSource.cpp
+        src/core/search/FieldDoc.cpp
+        src/core/search/FieldDocSortedHitQueue.cpp
+        src/core/search/FieldValueHitQueue.cpp
+        src/core/search/Filter.cpp
+        src/core/search/FilteredDocIdSet.cpp
+        src/core/search/FilteredDocIdSetIterator.cpp
+        src/core/search/FilteredQuery.cpp
+        src/core/search/FilteredTermEnum.cpp
+        src/core/search/FilterManager.cpp
+        src/core/search/FuzzyQuery.cpp
+        src/core/search/FuzzyTermEnum.cpp
+        src/core/search/HitQueue.cpp
+        src/core/search/HitQueueBase.cpp
+        src/core/search/IndexSearcher.cpp
+        src/core/search/MatchAllDocsQuery.cpp
+        src/core/search/MultiPhraseQuery.cpp
+        src/core/search/MultiSearcher.cpp
+        src/core/search/MultiTermQuery.cpp
+        src/core/search/MultiTermQueryWrapperFilter.cpp
+        src/core/search/NumericRangeFilter.cpp
+        src/core/search/NumericRangeQuery.cpp
+        src/core/search/ParallelMultiSearcher.cpp
+        src/core/search/PhrasePositions.cpp
+        src/core/search/PhraseQuery.cpp
+        src/core/search/PhraseQueue.cpp
+        src/core/search/PhraseScorer.cpp
+        src/core/search/PositiveScoresOnlyCollector.cpp
+        src/core/search/PrefixFilter.cpp
+        src/core/search/PrefixQuery.cpp
+        src/core/search/PrefixTermEnum.cpp
+        src/core/search/Query.cpp
+        src/core/search/QueryTermVector.cpp
+        src/core/search/QueryWrapperFilter.cpp
+        src/core/search/ReqExclScorer.cpp
+        src/core/search/ReqOptSumScorer.cpp
+        src/core/search/ScoreCachingWrappingScorer.cpp
+        src/core/search/ScoreDoc.cpp
+        src/core/search/Scorer.cpp
+        src/core/search/Searchable.cpp
+        src/core/search/Searcher.cpp
+        src/core/search/Similarity.cpp
+        src/core/search/SimilarityDelegator.cpp
+        src/core/search/SingleTermEnum.cpp
+        src/core/search/SloppyPhraseScorer.cpp
+        src/core/search/Sort.cpp
+        src/core/search/SortField.cpp
+        src/core/search/SpanFilter.cpp
+        src/core/search/SpanFilterResult.cpp
+        src/core/search/SpanQueryFilter.cpp
+        src/core/search/TermQuery.cpp
+        src/core/search/TermRangeFilter.cpp
+        src/core/search/TermRangeQuery.cpp
+        src/core/search/TermRangeTermEnum.cpp
+        src/core/search/TermScorer.cpp
+        src/core/search/TimeLimitingCollector.cpp
+        src/core/search/TopDocs.cpp
+        src/core/search/TopDocsCollector.cpp
+        src/core/search/TopFieldCollector.cpp
+        src/core/search/TopFieldDocs.cpp
+        src/core/search/TopScoreDocCollector.cpp
+        src/core/search/Weight.cpp
+        src/core/search/WildcardQuery.cpp
+        src/core/search/WildcardTermEnum.cpp
+        src/core/store/BufferedIndexInput.cpp
+        src/core/store/BufferedIndexOutput.cpp
+        src/core/store/ChecksumIndexInput.cpp
+        src/core/store/ChecksumIndexOutput.cpp
+        src/core/store/Directory.cpp
+        src/core/store/FileSwitchDirectory.cpp
+        src/core/store/FSDirectory.cpp
+        src/core/store/FSLockFactory.cpp
+        src/core/store/IndexInput.cpp
+        src/core/store/IndexOutput.cpp
+        src/core/store/Lock.cpp
+        src/core/store/LockFactory.cpp
+        src/core/store/MMapDirectory.cpp
+        src/core/store/NativeFSLockFactory.cpp
+        src/core/store/NoLockFactory.cpp
+        src/core/store/RAMDirectory.cpp
+        src/core/store/RAMFile.cpp
+        src/core/store/RAMInputStream.cpp
+        src/core/store/RAMOutputStream.cpp
+        src/core/store/SimpleFSDirectory.cpp
+        src/core/store/SimpleFSLockFactory.cpp
+        src/core/store/SingleInstanceLockFactory.cpp
+        src/core/util/md5/md5.c
+        src/core/util/md5/md5.h
+        src/core/util/unicode/gunichartables.h
+        src/core/util/unicode/guniprop.cpp
+        src/core/util/unicode/guniprop.h
+        src/core/util/Attribute.cpp
+        src/core/util/AttributeSource.cpp
+        src/core/util/Base64.cpp
+        src/core/util/BitSet.cpp
+        src/core/util/BitUtil.cpp
+        src/core/util/BitVector.cpp
+        src/core/util/BufferedReader.cpp
+        src/core/util/CharFolder.cpp
+        src/core/util/Collator.cpp
+        src/core/util/Constants.cpp
+        src/core/util/CycleCheck.cpp
+        src/core/util/DocIdBitSet.cpp
+        src/core/util/FieldCacheSanityChecker.cpp
+        src/core/util/FileReader.cpp
+        src/core/util/FileUtils.cpp
+        src/core/util/InfoStream.cpp
+        src/core/util/InputStreamReader.cpp
+        src/core/util/LuceneAllocator.cpp
+        src/core/util/LuceneException.cpp
+        src/core/util/LuceneObject.cpp
+        src/core/util/LuceneSignal.cpp
+        src/core/util/LuceneSync.cpp
+        src/core/util/LuceneThread.cpp
+        src/core/util/MiscUtils.cpp
+        src/core/util/NumericUtils.cpp
+        src/core/util/OpenBitSet.cpp
+        src/core/util/OpenBitSetDISI.cpp
+        src/core/util/OpenBitSetIterator.cpp
+        src/core/util/Random.cpp
+        src/core/util/Reader.cpp
+        src/core/util/ReaderUtil.cpp
+        src/core/util/ScorerDocQueue.cpp
+        src/core/util/SmallDouble.cpp
+        src/core/util/SortedVIntList.cpp
+        src/core/util/StringReader.cpp
+        src/core/util/StringUtils.cpp
+        src/core/util/Synchronize.cpp
+        src/core/util/TestPoint.cpp
+        src/core/util/ThreadPool.cpp
+        src/core/util/UnicodeUtils.cpp
+        src/core/util/UTF8Stream.cpp
+        src/demo/deletefiles/main.cpp
+        src/demo/indexfiles/main.cpp
+        src/demo/searchfiles/main.cpp
+        src/msvc/lucene++.sln
+        src/test/analysis/standard/StandardAnalyzerTest.cpp
+        src/test/analysis/tokenattributes/SimpleAttributeTest.cpp
+        src/test/analysis/tokenattributes/TermAttributeTest.cpp
+        src/test/analysis/AnalyzersTest.cpp
+        src/test/analysis/BaseTokenStreamFixture.cpp
+        src/test/analysis/CachingTokenFilterTest.cpp
+        src/test/analysis/CharFilterTest.cpp
+        src/test/analysis/KeywordAnalyzerTest.cpp
+        src/test/analysis/LengthFilterTest.cpp
+        src/test/analysis/MappingCharFilterTest.cpp
+        src/test/analysis/NumericTokenStreamTest.cpp
+        src/test/analysis/PerFieldAnalzyerWrapperTest.cpp
+        src/test/analysis/StopAnalyzerTest.cpp
+        src/test/analysis/StopFilterTest.cpp
+        src/test/analysis/TeeSinkTokenFilterTest.cpp
+        src/test/analysis/TokenTest.cpp
+        src/test/contrib/analyzers/common/analysis/ar/ArabicAnalyzerTest.cpp
+        src/test/contrib/analyzers/common/analysis/ar/ArabicNormalizationFilterTest.cpp
+        src/test/contrib/analyzers/common/analysis/ar/ArabicStemFilterTest.cpp
+        src/test/contrib/analyzers/common/analysis/br/BrazilianStemmerTest.cpp
+        src/test/contrib/analyzers/common/analysis/cjk/CJKTokenizerTest.cpp
+        src/test/contrib/analyzers/common/analysis/cn/ChineseTokenizerTest.cpp
+        src/test/contrib/analyzers/common/analysis/cz/CzechAnalyzerTest.cpp
+        src/test/contrib/analyzers/common/analysis/de/GermanStemFilterTest.cpp
+        src/test/contrib/analyzers/common/analysis/el/GreekAnalyzerTest.cpp
+        src/test/contrib/analyzers/common/analysis/fa/PersianAnalyzerTest.cpp
+        src/test/contrib/analyzers/common/analysis/fa/PersianNormalizationFilterTest.cpp
+        src/test/contrib/analyzers/common/analysis/fr/ElisionTest.cpp
+        src/test/contrib/analyzers/common/analysis/fr/FrenchAnalyzerTest.cpp
+        src/test/contrib/analyzers/common/analysis/nl/DutchStemmerTest.cpp
+        src/test/contrib/analyzers/common/analysis/reverse/ReverseStringFilterTest.cpp
+        src/test/contrib/analyzers/common/analysis/ru/RussianAnalyzerTest.cpp
+        src/test/contrib/analyzers/common/analysis/ru/RussianStemTest.cpp
+        src/test/contrib/highlighter/HighlighterTest.cpp
+        src/test/contrib/memory/MemoryIndexTest.cpp
+        src/test/contrib/snowball/SnowballTest.cpp
+        src/test/document/BinaryDocumentTest.cpp
+        src/test/document/DateFieldTest.cpp
+        src/test/document/DateToolsTest.cpp
+        src/test/document/DocumentTest.cpp
+        src/test/document/NumberToolsTest.cpp
+        src/test/gtest/codegear/gtest_all.cc
+        src/test/gtest/codegear/gtest_link.cc
+        src/test/gtest/include/gtest/internal/gtest-death-test-internal.h
+        src/test/gtest/include/gtest/internal/gtest-filepath.h
+        src/test/gtest/include/gtest/internal/gtest-internal.h
+        src/test/gtest/include/gtest/internal/gtest-linked_ptr.h
+        src/test/gtest/include/gtest/internal/gtest-param-util-generated.h
+        src/test/gtest/include/gtest/internal/gtest-param-util.h
+        src/test/gtest/include/gtest/internal/gtest-port.h
+        src/test/gtest/include/gtest/internal/gtest-string.h
+        src/test/gtest/include/gtest/internal/gtest-tuple.h
+        src/test/gtest/include/gtest/internal/gtest-type-util.h
+        src/test/gtest/include/gtest/gtest-death-test.h
+        src/test/gtest/include/gtest/gtest-message.h
+        src/test/gtest/include/gtest/gtest-param-test.h
+        src/test/gtest/include/gtest/gtest-printers.h
+        src/test/gtest/include/gtest/gtest-spi.h
+        src/test/gtest/include/gtest/gtest-test-part.h
+        src/test/gtest/include/gtest/gtest-typed-test.h
+        src/test/gtest/include/gtest/gtest.h
+        src/test/gtest/include/gtest/gtest_pred_impl.h
+        src/test/gtest/include/gtest/gtest_prod.h
+        src/test/gtest/samples/prime_tables.h
+        src/test/gtest/samples/sample1.cc
+        src/test/gtest/samples/sample1.h
+        src/test/gtest/samples/sample10_unittest.cc
+        src/test/gtest/samples/sample1_unittest.cc
+        src/test/gtest/samples/sample2.cc
+        src/test/gtest/samples/sample2.h
+        src/test/gtest/samples/sample2_unittest.cc
+        src/test/gtest/samples/sample3-inl.h
+        src/test/gtest/samples/sample3_unittest.cc
+        src/test/gtest/samples/sample4.cc
+        src/test/gtest/samples/sample4.h
+        src/test/gtest/samples/sample4_unittest.cc
+        src/test/gtest/samples/sample5_unittest.cc
+        src/test/gtest/samples/sample6_unittest.cc
+        src/test/gtest/samples/sample7_unittest.cc
+        src/test/gtest/samples/sample8_unittest.cc
+        src/test/gtest/samples/sample9_unittest.cc
+        src/test/gtest/src/gtest-all.cc
+        src/test/gtest/src/gtest-death-test.cc
+        src/test/gtest/src/gtest-filepath.cc
+        src/test/gtest/src/gtest-internal-inl.h
+        src/test/gtest/src/gtest-port.cc
+        src/test/gtest/src/gtest-printers.cc
+        src/test/gtest/src/gtest-test-part.cc
+        src/test/gtest/src/gtest-typed-test.cc
+        src/test/gtest/src/gtest.cc
+        src/test/gtest/src/gtest_main.cc
+        src/test/gtest/test/gtest-death-test_ex_test.cc
+        src/test/gtest/test/gtest-death-test_test.cc
+        src/test/gtest/test/gtest-filepath_test.cc
+        src/test/gtest/test/gtest-linked_ptr_test.cc
+        src/test/gtest/test/gtest-listener_test.cc
+        src/test/gtest/test/gtest-message_test.cc
+        src/test/gtest/test/gtest-options_test.cc
+        src/test/gtest/test/gtest-param-test2_test.cc
+        src/test/gtest/test/gtest-param-test_test.cc
+        src/test/gtest/test/gtest-param-test_test.h
+        src/test/gtest/test/gtest-port_test.cc
+        src/test/gtest/test/gtest-printers_test.cc
+        src/test/gtest/test/gtest-test-part_test.cc
+        src/test/gtest/test/gtest-tuple_test.cc
+        src/test/gtest/test/gtest-typed-test2_test.cc
+        src/test/gtest/test/gtest-typed-test_test.cc
+        src/test/gtest/test/gtest-typed-test_test.h
+        src/test/gtest/test/gtest-unittest-api_test.cc
+        src/test/gtest/test/gtest_all_test.cc
+        src/test/gtest/test/gtest_break_on_failure_unittest_.cc
+        src/test/gtest/test/gtest_catch_exceptions_test_.cc
+        src/test/gtest/test/gtest_color_test_.cc
+        src/test/gtest/test/gtest_env_var_test_.cc
+        src/test/gtest/test/gtest_environment_test.cc
+        src/test/gtest/test/gtest_filter_unittest_.cc
+        src/test/gtest/test/gtest_help_test_.cc
+        src/test/gtest/test/gtest_list_tests_unittest_.cc
+        src/test/gtest/test/gtest_main_unittest.cc
+        src/test/gtest/test/gtest_no_test_unittest.cc
+        src/test/gtest/test/gtest_output_test_.cc
+        src/test/gtest/test/gtest_pred_impl_unittest.cc
+        src/test/gtest/test/gtest_premature_exit_test.cc
+        src/test/gtest/test/gtest_prod_test.cc
+        src/test/gtest/test/gtest_repeat_test.cc
+        src/test/gtest/test/gtest_shuffle_test_.cc
+        src/test/gtest/test/gtest_sole_header_test.cc
+        src/test/gtest/test/gtest_stress_test.cc
+        src/test/gtest/test/gtest_throw_on_failure_ex_test.cc
+        src/test/gtest/test/gtest_throw_on_failure_test_.cc
+        src/test/gtest/test/gtest_uninitialized_test_.cc
+        src/test/gtest/test/gtest_unittest.cc
+        src/test/gtest/test/gtest_xml_outfile1_test_.cc
+        src/test/gtest/test/gtest_xml_outfile2_test_.cc
+        src/test/gtest/test/gtest_xml_output_unittest_.cc
+        src/test/gtest/test/production.cc
+        src/test/gtest/test/production.h
+        src/test/gtest/xcode/Samples/FrameworkSample/widget.cc
+        src/test/gtest/xcode/Samples/FrameworkSample/widget.h
+        src/test/gtest/xcode/Samples/FrameworkSample/widget_test.cc
+        src/test/include/BaseTestRangeFilterFixture.h
+        src/test/include/BaseTokenStreamFixture.h
+        src/test/include/CheckHits.h
+        src/test/include/DocHelper.h
+        src/test/include/ExplanationsFixture.h
+        src/test/include/FunctionFixture.h
+        src/test/include/LuceneGlobalFixture.h
+        src/test/include/LuceneTestFixture.h
+        src/test/include/MockFilter.h
+        src/test/include/MockFSDirectory.h
+        src/test/include/MockIndexInput.h
+        src/test/include/MockLock.h
+        src/test/include/MockLockFactory.h
+        src/test/include/MockRAMDirectory.h
+        src/test/include/MockRAMInputStream.h
+        src/test/include/MockRAMOutputStream.h
+        src/test/include/PayloadHelper.h
+        src/test/include/QueryUtils.h
+        src/test/include/test_lucene.h
+        src/test/include/TestInc.h
+        src/test/include/TestUtils.h
+        src/test/index/AddIndexesNoOptimizeTest.cpp
+        src/test/index/AtomicUpdateTest.cpp
+        src/test/index/BackwardsCompatibilityTest.cpp
+        src/test/index/ByteSlicesTest.cpp
+        src/test/index/CheckIndexTest.cpp
+        src/test/index/CompoundFileTest.cpp
+        src/test/index/ConcurrentMergeSchedulerTest.cpp
+        src/test/index/CrashTest.cpp
+        src/test/index/DeletionPolicyTest.cpp
+        src/test/index/DirectoryReaderTest.cpp
+        src/test/index/DocHelper.cpp
+        src/test/index/DocTest.cpp
+        src/test/index/DocumentWriterTest.cpp
+        src/test/index/FieldInfosTest.cpp
+        src/test/index/FieldsReaderTest.cpp
+        src/test/index/FilterIndexReaderTest.cpp
+        src/test/index/IndexCommitTest.cpp
+        src/test/index/IndexFileDeleterTest.cpp
+        src/test/index/IndexInputTest.cpp
+        src/test/index/IndexReaderCloneNormsTest.cpp
+        src/test/index/IndexReaderCloneTest.cpp
+        src/test/index/IndexReaderReopenTest.cpp
+        src/test/index/IndexReaderTest.cpp
+        src/test/index/IndexWriterDeleteTest.cpp
+        src/test/index/IndexWriterExceptionsTest.cpp
+        src/test/index/IndexWriterLockReleaseTest.cpp
+        src/test/index/IndexWriterMergePolicyTest.cpp
+        src/test/index/IndexWriterMergingTest.cpp
+        src/test/index/IndexWriterReaderTest.cpp
+        src/test/index/IndexWriterTest.cpp
+        src/test/index/LazyBugTest.cpp
+        src/test/index/LazyProxSkippingTest.cpp
+        src/test/index/MockIndexInput.cpp
+        src/test/index/MultiLevelSkipListTest.cpp
+        src/test/index/MultiReaderTest.cpp
+        src/test/index/NormsTest.cpp
+        src/test/index/NRTReaderWithThreadsTest.cpp
+        src/test/index/OmitTfTest.cpp
+        src/test/index/ParallelReaderEmptyIndexTest.cpp
+        src/test/index/ParallelReaderTest.cpp
+        src/test/index/ParallelTermEnumTest.cpp
+        src/test/index/PayloadsTest.cpp
+        src/test/index/PositionBasedTermVectorMapperTest.cpp
+        src/test/index/SegmentMergerTest.cpp
+        src/test/index/SegmentReaderTest.cpp
+        src/test/index/SegmentTermDocsTest.cpp
+        src/test/index/SegmentTermEnumTest.cpp
+        src/test/index/SnapshotDeletionPolicyTest.cpp
+        src/test/index/StressIndexingTest.cpp
+        src/test/index/TermDocsPerfTest.cpp
+        src/test/index/TermTest.cpp
+        src/test/index/TermVectorsReaderTest.cpp
+        src/test/index/ThreadedOptimizeTest.cpp
+        src/test/index/TransactionRollbackTest.cpp
+        src/test/index/TransactionsTest.cpp
+        src/test/index/WordlistLoaderTest.cpp
+        src/test/main/main.cpp
+        src/test/msvc/TestInc.cpp
+        src/test/queryparser/MultiAnalyzerTest.cpp
+        src/test/queryparser/MultiFieldQueryParserTest.cpp
+        src/test/queryparser/QueryParserTest.cpp
+        src/test/search/function/CustomScoreQueryTest.cpp
+        src/test/search/function/DocValuesTest.cpp
+        src/test/search/function/FieldScoreQueryTest.cpp
+        src/test/search/function/FunctionFixture.cpp
+        src/test/search/function/OrdValuesTest.cpp
+        src/test/search/payloads/PayloadHelper.cpp
+        src/test/search/payloads/PayloadNearQueryTest.cpp
+        src/test/search/payloads/PayloadTermQueryTest.cpp
+        src/test/search/spans/BasicSpansTest.cpp
+        src/test/search/spans/FieldMaskingSpanQueryTest.cpp
+        src/test/search/spans/NearSpansOrderedTest.cpp
+        src/test/search/spans/PayloadSpansTest.cpp
+        src/test/search/spans/SpanExplanationsTest.cpp
+        src/test/search/spans/SpansAdvanced2Test.cpp
+        src/test/search/spans/SpansAdvancedTest.cpp
+        src/test/search/spans/SpansTest.cpp
+        src/test/search/BaseTestRangeFilterFixture.cpp
+        src/test/search/BaseTestRangeFilterTest.cpp
+        src/test/search/Boolean2Test.cpp
+        src/test/search/BooleanMinShouldMatchTest.cpp
+        src/test/search/BooleanOrTest.cpp
+        src/test/search/BooleanPrefixQueryTest.cpp
+        src/test/search/BooleanQueryTest.cpp
+        src/test/search/BooleanScorerTest.cpp
+        src/test/search/CachingSpanFilterTest.cpp
+        src/test/search/CachingWrapperFilterTest.cpp
+        src/test/search/CheckHits.cpp
+        src/test/search/ComplexExplanationsOfNonMatchesTest.cpp
+        src/test/search/ComplexExplanationsTest.cpp
+        src/test/search/CustomSearcherSortTest.cpp
+        src/test/search/DateFilterTest.cpp
+        src/test/search/DateSortTest.cpp
+        src/test/search/DisjunctionMaxQueryTest.cpp
+        src/test/search/DocBoostTest.cpp
+        src/test/search/DocIdSetTest.cpp
+        src/test/search/ElevationComparatorTest.cpp
+        src/test/search/ExplanationsFixture.cpp
+        src/test/search/FieldCacheRangeFilterTest.cpp
+        src/test/search/FieldCacheTermsFilterTest.cpp
+        src/test/search/FieldCacheTest.cpp
+        src/test/search/FilteredQueryTest.cpp
+        src/test/search/FilteredSearchTest.cpp
+        src/test/search/FuzzyQueryTest.cpp
+        src/test/search/MatchAllDocsQueryTest.cpp
+        src/test/search/MockFilter.cpp
+        src/test/search/MultiPhraseQueryTest.cpp
+        src/test/search/MultiSearcherRankingTest.cpp
+        src/test/search/MultiSearcherTest.cpp
+        src/test/search/MultiTermConstantScoreTest.cpp
+        src/test/search/MultiThreadTermVectorsTest.cpp
+        src/test/search/MultiValuedNumericRangeQueryTest.cpp
+        src/test/search/NotTest.cpp
+        src/test/search/NumericRangeQuery32Test.cpp
+        src/test/search/NumericRangeQuery64Test.cpp
+        src/test/search/ParallelMultiSearcherTest.cpp
+        src/test/search/PhrasePrefixQueryTest.cpp
+        src/test/search/PhraseQueryTest.cpp
+        src/test/search/PositionIncrementTest.cpp
+        src/test/search/PositiveScoresOnlyCollectorTest.cpp
+        src/test/search/PrefixFilterTest.cpp
+        src/test/search/PrefixInBooleanQueryTest.cpp
+        src/test/search/PrefixQueryTest.cpp
+        src/test/search/QueryTermVectorTest.cpp
+        src/test/search/QueryUtils.cpp
+        src/test/search/QueryWrapperFilterTest.cpp
+        src/test/search/ScoreCachingWrappingScorerTest.cpp
+        src/test/search/ScorerPerfTest.cpp
+        src/test/search/SearchForDuplicatesTest.cpp
+        src/test/search/SearchTest.cpp
+        src/test/search/SetNormTest.cpp
+        src/test/search/SimilarityTest.cpp
+        src/test/search/SimpleExplanationsOfNonMatchesTest.cpp
+        src/test/search/SimpleExplanationsTest.cpp
+        src/test/search/SloppyPhraseQueryTest.cpp
+        src/test/search/SortTest.cpp
+        src/test/search/SpanQueryFilterTest.cpp
+        src/test/search/TermRangeFilterTest.cpp
+        src/test/search/TermRangeQueryTest.cpp
+        src/test/search/TermScorerTest.cpp
+        src/test/search/TermVectorsTest.cpp
+        src/test/search/ThreadSafeTest.cpp
+        src/test/search/TimeLimitingCollectorTest.cpp
+        src/test/search/TopDocsCollectorTest.cpp
+        src/test/search/TopScoreDocCollectorTest.cpp
+        src/test/search/WildcardTest.cpp
+        src/test/store/BufferedIndexInputTest.cpp
+        src/test/store/BufferedIndexOutputTest.cpp
+        src/test/store/DirectoryTest.cpp
+        src/test/store/FileSwitchDirectoryTest.cpp
+        src/test/store/IndexOutputTest.cpp
+        src/test/store/LockFactoryTest.cpp
+        src/test/store/MMapDirectoryTest.cpp
+        src/test/store/MockFSDirectory.cpp
+        src/test/store/MockLock.cpp
+        src/test/store/MockLockFactory.cpp
+        src/test/store/MockRAMDirectory.cpp
+        src/test/store/MockRAMInputStream.cpp
+        src/test/store/MockRAMOutputStream.cpp
+        src/test/store/RAMDirectoryTest.cpp
+        src/test/util/AttributeSourceTest.cpp
+        src/test/util/Base64Test.cpp
+        src/test/util/BitVectorTest.cpp
+        src/test/util/BufferedReaderTest.cpp
+        src/test/util/CloseableThreadLocalTest.cpp
+        src/test/util/CompressionToolsTest.cpp
+        src/test/util/FieldCacheSanityCheckerTest.cpp
+        src/test/util/FileReaderTest.cpp
+        src/test/util/FileUtilsTest.cpp
+        src/test/util/InputStreamReaderTest.cpp
+        src/test/util/LuceneGlobalFixture.cpp
+        src/test/util/LuceneTestFixture.cpp
+        src/test/util/NumericUtilsTest.cpp
+        src/test/util/OpenBitSetTest.cpp
+        src/test/util/PriorityQueueTest.cpp
+        src/test/util/SimpleLRUCacheTest.cpp
+        src/test/util/SortedVIntListTest.cpp
+        src/test/util/StringReaderTest.cpp
+        src/test/util/StringUtilsTest.cpp
+        src/test/util/TestUtils.cpp
+        src/test/util/VersionTest.cpp
+        APACHE.license
+        AUTHORS
+        CMakeLists.txt
+        COPYING
+        GPL.license
+        LGPL.license
+        liblucene++-contrib.pc.cmake
+        liblucene++.pc.cmake
+        README.PACKAGE
+        README.rst
+        REQUESTS)
